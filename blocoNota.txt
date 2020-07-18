@@ -1,0 +1,7 @@
+{
+  "rules": {
+    ".read": "auth.provider == 'password'",
+    ".write": "auth.provider == 'password'"
+    
+  }
+}

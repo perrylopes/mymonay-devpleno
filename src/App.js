@@ -3,7 +3,8 @@ import { BrowserRouter as Router, Route } from "react-router-dom";
 
 import Header from "./elements/Header";
 import Home from "./pages/Home";
-import Movimentacao from "./pages/Movimentacao";
+import Movimentacao from "./pages/Movimentacoes";
+import Login from "./pages/Login";
 
 // funcao pura
 function App() {
@@ -15,6 +16,7 @@ function App() {
     <Router>
       <Header />
       <Route path="/" exact component={Home} />
+      <Route path="/login" exact component={Login} />
       <Route path="/movimentacoes/:data" exact component={Movimentacao} />
     </Router>
   );

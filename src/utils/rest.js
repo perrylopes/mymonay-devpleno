@@ -1,12 +1,13 @@
 // Componentes de Terceiros
 import { useReducer, useEffect } from "react";
 import axios from "axios";
+axios.defaults.validateStatus = (code) => code < 500;
 
 // Componentes Nossos
 
 // Estilos
 // Variaveis
-const INITIAL_STATE = { loading: false, data: {} };
+const INITIAL_STATE = { loading: false, data: {}, error: "" };
 
 // funcão
 const reducer = (state, action) => {
@@ -24,18 +25,43 @@ const reducer = (state, action) => {
       data: action.data,
     };
   }
+  if (action.type === "FAILURE") {
+    return {
+      ...state,
+      loading: false,
+      error: action.error,
+      code: action.code,
+    };
+  }
   return state;
+};
+
+const getAuth = () => {
+  const token = localStorage.getItem("token");
+  if (token) {
+    return "?auth=" + token;
+  }
+  return "";
 };
 
 const init = (baseUrl) => {
   const useGet = (resource) => {
-    console.log(baseUrl + resource + ".json");
     const [data, dispatch] = useReducer(reducer, INITIAL_STATE);
-
     const carregar = async () => {
-      dispatch({ type: "RESQUEST" });
-      const res = await axios.get(baseUrl + resource + ".json");
-      dispatch({ type: "SUCCESS", data: res.data });
+      try {
+        dispatch({ type: "RESQUEST" });
+        const res = await axios.get(baseUrl + resource + ".json" + getAuth());
+        if (res.data.error && Object.keys(res.data.error).length > 0) {
+          dispatch({
+            type: "FAILURE",
+            error: res.data.error,
+          });
+        } else {
+          dispatch({ type: "SUCCESS", data: res.data });
+        }
+      } catch (err) {
+        dispatch({ type: "FAILURE", error: "unknown erroe" });
+      }
     };
 
     useEffect(() => {
@@ -53,7 +79,10 @@ const init = (baseUrl) => {
 
     const post = async (data) => {
       dispatch({ type: "RESQUEST" });
-      const res = await axios.post(baseUrl + resource + ".json", data);
+      const res = await axios.post(
+        baseUrl + resource + ".json" + getAuth(),
+        data
+      );
       dispatch({ type: "SUCCESS", data: res.data });
     };
 
@@ -65,19 +94,19 @@ const init = (baseUrl) => {
 
     const remove = async (resource) => {
       dispatch({ type: "RESQUEST" });
-      await axios.delete(baseUrl + resource + ".json");
+      await axios.delete(baseUrl + resource + ".json" + getAuth());
       dispatch({ type: "SUCCESS" });
     };
 
     return [data, remove];
   };
 
-  const usePatch = () => {
+  const usePatch = (resource) => {
     const [data, dispatch] = useReducer(reducer, INITIAL_STATE);
 
-    const patch = async (resource, data) => {
+    const patch = async (data) => {
       dispatch({ type: "RESQUEST" });
-      await axios.patch(baseUrl + resource + ".json", data);
+      await axios.patch(baseUrl + resource + ".json" + getAuth(), data);
       dispatch({ type: "SUCCESS" });
     };
 
@@ -90,6 +119,28 @@ const init = (baseUrl) => {
     useDelete,
     usePatch,
   };
+};
+
+export const usePost = (resource) => {
+  const [data, dispatch] = useReducer(reducer, INITIAL_STATE);
+
+  const post = async (data) => {
+    dispatch({ type: "RESQUEST" });
+    try {
+      const res = await axios.post(resource, data);
+      if (res.data.error && Object.keys(res.data.error).length > 0) {
+        dispatch({ type: "FAILURE", error: res.data.error.message });
+      } else {
+        dispatch({ type: "SUCCESS", data: res.data });
+        return res.data;
+      }
+    } catch (err) {
+      console.log(err.message);
+      dispatch({ type: "FAILURE", error: "unknow error" });
+    }
+  };
+
+  return [data, post];
 };
 
 export default init;
